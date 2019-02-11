@@ -1,7 +1,7 @@
 ---
 title: "Horeshoe crab case study: models under various assumptions"
 output: html_notebook
-editor_options: 
+editor_options:
   chunk_output_type: inline
 ---
 
@@ -9,20 +9,20 @@ Let's continue working with the horseshoe crab data from last time. Today, we'll
 
 ```{r}
 suppressPackageStartupMessages(library(tidyverse))
-crab <- read_table("https://newonlinecourses.science.psu.edu/stat504/sites/onlinecourses.science.psu.edu.stat504/files/lesson07/crab/index.txt", col_names = FALSE) %>% 
-  select(-1) %>% 
-  setNames(c("colour","spine","width","weight","n_male")) %>% 
+crab <- read_table("https://newonlinecourses.science.psu.edu/stat504/sites/onlinecourses.science.psu.edu.stat504/files/lesson07/crab/index.txt", col_names = FALSE) %>%
+  select(-1) %>%
+  setNames(c("colour","spine","width","weight","n_male")) %>%
   mutate(colour = factor(colour),
          spine  = factor(spine))
-knitr::kable(head(crab))
+head(crab)
 ```
 
 Case study: how do features of nesting female horseshoe crabs influence the number of males found nearby? Let's see how carapace width influences the mean number of males nearby.
 
 ```{r, fig.width=6, fig.height=3}
-p <- ggplot(crab, aes(width, n_male)) + 
+p <- ggplot(crab, aes(width, n_male)) +
   geom_point(alpha=0.25) +
-  labs(x = "Carapace Width", 
+  labs(x = "Carapace Width",
        y = "No. males\nnearby") +
   theme_bw() +
   theme(axis.title.y = element_text(angle=0, vjust=0.5))
@@ -36,11 +36,11 @@ Data source: [H. Jane Brockmann's 1996 paper](https://onlinelibrary.wiley.com/do
 
 Optimize the loess fit by eye. Just modify span, to keep things simple.
 
-```{r, fig.width=6, fig.height=4}
+```{r, fig.width=4, fig.height=3}
 grid <- seq(min(crab$width), max(crab$width), length.out=100)
 grid_df <- tibble(width = grid)
 model1 <- loess(n_male ~ width, data=crab, degree=2, span=0.5)
-grid_df %>% 
+grid_df %>%
   mutate(., yhat = predict(model1, .)) %>% #. specifying new data i.e grid_df
   ggplot(aes(width, yhat)) +
   geom_line(colour="blue") +
@@ -60,16 +60,22 @@ How well does this model answer our original question?
 
 ### Fit a linear regression model
 
-Fit a linear regression model. What's the error?
+Fit a linear regression model.
 
-```{r}
+```{r, fig.width=4, fig.height=3}
 model2 <- lm(n_male ~ width, data=crab)
 ggplot(crab, aes(width, n_male)) +
     geom_point(alpha=0.25) +
     geom_smooth(method="lm", se=FALSE)
+```
+
+Error:
+
+```{r}
 resid2 <- crab$n_male - predict(model2)
 (error2 <- mean(resid2^2))
 ```
+
 
 How well does this model answer our original question? Do you see a potential problem with this model? Are any assumptions of linear regression not true? Brainstorm ideas for how to deal with the problems.
 
@@ -84,14 +90,14 @@ Let's talk about an alternative approach called _Generalized Linear Models_ (GLM
 
 - Appropriate transformation: on Y? On E(Y|X)? Link function definitions.
 - Interpretation of parameters under log and logit links.
-- Fitting the model function: Is LS "valid"? Can we do better? 
+- Fitting the model function: Is LS "valid"? Can we do better?
     - The two types of parametric assumptions, their risk, and their value.
     - Review of MLE?
     - Nomenclature: Poisson regression; Binomial/Bernoulli/Logistic regression.
 
 ## Approach 3: Link Function
 
-Fit a GLM. Plot using `ggplot2`, making use of the `method.args` argument of `geom_smooth()`. What's the error?
+Fit a GLM. Plot using `ggplot2`, making use of the `method.args` argument of `geom_smooth()`.
 
 ```{r}
 model3 <- glm(n_male ~ width, data=crab, family = poisson)
@@ -102,7 +108,23 @@ resid3 <- crab$n_male - predict(model3, type = "response") # need type or else w
 (error3 <- mean(resid3^2))
 ```
 
-Bonus: generate some data under the fitted model. How does it compare?
+
+## A note on error comparison
+
+Here are the errors of the above three models:
+
+```{r}
+tribble(
+	~ method, ~ MSE,
+	"local", error1,
+	"linear", error2,
+	"GLM", error3
+)
+```
+
+This suggests that the model function from the local method fits the data best, and that the exponential model function (GLM) fits the data poorest. This means that for _prediction_, the local model is best.
+
+If our interest is interpretation, error measurements are less important. Here, the linear model is probably fine, since the model function does not drop below zero within the span of the data. Since it also fits better than the GLM, there's probably no harm in choosing it for interpretation -- unless you particularly care about the relationship for small horseshoe crabs!
 
 ## Approach 4: Scientifically motivated model function?
 
