@@ -30,7 +30,7 @@ First, let's see how carapace width influences the mean number of males nearby.
 p <- ggplot(crab, aes(width, n_male)) + 
   geom_point(alpha=0.25) +
   labs(x = "Carapace Width", 
-       y = "No. males\nnearby") +
+       y = "No. males\nnearby changes") +
   theme_bw() +
   theme(axis.title.y = element_text(angle=0, vjust=0.5))
 plotly::ggplotly(p)
