@@ -15,14 +15,16 @@
 
 Fitting a model function involves separate consideration of the model function and conditional distributions:
 
-| Model function assumption? | Distributional Assumption? | Method |
+| Model function assumption? | Distributional Assumption? (assump. on response given predictor)| Method |
 |----|----|----|
-| no | no |  |
-| yes | no |  |
-| yes | yes |  |
-| no | yes |  |
+| no | no | kNN, loess, RF (ML model that has tunning pararmeter so your not overfitting or underfitting) |
+| yes | no | linear regression,  |
+| yes | yes | GLM |
+| no | yes | kNN, loess, RF  |
 
-Lecture 2: 
+> no, yes (ex.Gaussian): sample avg over a particular sample of x
+
+Lecture 2:  
 
 - Restricted range problem: solve via link functions.
     - E(Y) > 0: log link

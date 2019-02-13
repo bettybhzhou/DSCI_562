@@ -41,7 +41,7 @@ flu <- flu %>%
 Calculate the conditional variance for each row of the data, also using `loess()`.
 
 ```{r}
-var_lo <- loess(FILL_THIS_IN, data = flu, span = 0.2) %>% 
+var_lo <- loess((positive - mean_lo)^2 ~ week, data = flu, span = 0.2) %>% 
     predict()
 flu <- flu %>% 
     mutate(var_lo = var_lo,
@@ -69,8 +69,8 @@ What would a 95% prediction interval be, if we were to assume the conditional di
 p + geom_ribbon(
     data = flu_unique,
     mapping = aes(
-        ymin = mean_lo + FILL_THIS_IN,
-        ymax = mean_lo + FILL_THIS_IN
+        ymin = mean_lo - 1.96*sqrt(var_lo),
+        ymax = mean_lo + 1.96*sqrt(var_lo)
     ),
     alpha = 0.01, fill = "blue", colour = "blue"
 )
@@ -79,9 +79,13 @@ p + geom_ribbon(
 Questions:
 
 1. If you assume homoskedasticity, how would you estimate variance then?
+- just take average of variance since assume no pattern/trend
 2. If you assume the variance increases linearly, how would you estimate variance then? 
+fit lm to residuals
     - Why might this not be a good idea for this dataset, besides the trend not looking linear?
+    will drop back to 0 since data is cyclic
 3. If we fit a Poisson regression model, would it make sense to estimate the variance in this way?
+No, there is no variance component b/c Possion(u(x))
 
 ## Quantile Regression: No Assumption on the Model Function
 
@@ -99,20 +103,24 @@ p + geom_line(
 Let's try doing the same thing, without making any assumptions. But first, let's gain familiarity with the `quantile()` function: estimate the 0.75-quantile model function for the null model.
 
 ```{r}
-quantile(flu$positive, FILL_THIS_IN)
+quantile(flu$positive, probs = 0.75)
 ```
+
+> No, mF or distribution assumption, just null model
 
 Now for regression across "week". We'll just use a "by-hand" local method: a moving window with a radius <1 week.
 
 ```{r}
 flu <- flu %>% 
-    group_by(FILL_THIS_IN) %>% 
-    mutate(q75_local = FILL_THIS_IN)
+    group_by(week) %>% 
+    mutate(q75_local = quantile(positive, probs = 0.75))
 p + geom_line(
     data = flu, colour = "blue", size = 1,
     mapping = aes(y = q75_local)
 )
 ```
+
+> no assumption of MF or distribution
 
 ## Quantile Regression: Assumptions on the Model Function 
 
@@ -146,9 +154,10 @@ Use this model (under the Poisson assumption) to plot the 0.75-quantile model fu
 
 ```{r}
 crab <- crab %>% 
-    mutate(q75_glm = FILL_THIS_IN)
+    mutate(q75_glm = qpois(0.75, lambda = mean))
 p_crab +
-    geom_line(aes(y = q75_glm), colour = "blue", size = 1)
+    geom_line(data = crab, 
+              aes(y = q75_glm), colour = "blue", size = 1)
 ```
 
 Use the horseshoe crab data again to fit a linear 0.75-quantile regression model. Use the `quantreg::rq()` function.
